@@ -1,4 +1,5 @@
 /* note these headers are all provided by newlib - you don't need to provide them */
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
@@ -70,9 +71,54 @@ int fstat(int fd, struct stat *st) {
 
     return 0;
 }
-int getpid() { errno = ENOSYS; return -1; }
+int getpid() {
+	long ret;
+	asm volatile(
+	    "int $0x69"
+	    : "=a"(ret)
+	    : "a"(24)
+	    : "memory"
+	);
+	if (ret < 0) { errno = -ret; return -1; }
+	return ret;
+}
 int isatty(int file) { errno = ENOSYS; return -1; }
-int kill(int pid, int sig) { errno = ENOSYS; return -1; }
+int kill(int pid, int sig) {
+	long ret = 23; // syscall number
+
+	asm volatile(
+	    "int $0x69"
+	    : "+a"(ret)       // rax
+	    : "D"(pid),       // rdi
+	      "S"(sig)        // rsi
+	    : "memory"
+	);
+
+	if (ret < 0) {
+	    errno = -ret;
+	    return -1;
+	}
+
+	return 0;
+}
+void (*signal(int sig, void(*func)(int))) (int) {
+	long ret = 22; // syscall number
+
+	asm volatile(
+	    "int $0x69"
+	    : "+a"(ret)       // rax
+	    : "D"(sig),       // rdi
+	      "S"(func)         // rsi
+	    : "memory"
+	);
+
+	if (ret < 0) {
+	    errno = -ret;
+	    return (void*)-1;
+	}
+
+	return (void*)ret;
+}
 int link(char *old, char *new) { errno = ENOSYS; return -1; }
 int lseek(int file, int ptr, int dir) { errno = ENOSYS; return -1; }
 int open(const char *name, int flags, ...) {
@@ -120,7 +166,6 @@ int read(int file, char *ptr, int len) {
 	}
 	return ret;
 }
-caddr_t sbrk(int incr) { errno = ENOSYS; return (caddr_t)-1; }
 int stat(const char *file, struct stat *st) { errno = ENOSYS; return -1; }
 clock_t times(struct tms *buf) { errno = ENOSYS; return -1; }
 int unlink(char *name) { errno = ENOSYS; return -1; }
@@ -149,5 +194,28 @@ int write(int file, char *ptr, int len) {
 	    return -1;
 	}
 	return ret;
+}
+
+caddr_t sbrk(intptr_t incr) {
+    long ret;
+
+    asm volatile (
+        "mov %[num], %%rax\n\t"  /* syscall number */
+        "mov %[a1], %%rdi\n\t"   /* incr */
+        "int $0x69\n\t"          
+        "mov %%rax, %[ret]\n\t" 
+        : [ret] "=r"(ret)
+        : [num] "r"((unsigned long)21),
+          [a1]  "r"((unsigned long)incr)
+        : "rax", "rdi", "rcx", "r11", "memory"
+    );
+
+    // Handle error
+    if (ret < 0) {
+        errno = -ret;
+        return (caddr_t)-1;
+    }
+
+    return (caddr_t)ret;
 }
 int gettimeofday(struct timeval *p, void *z) { errno = ENOSYS; return -1; }

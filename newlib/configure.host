@@ -435,7 +435,7 @@ case "${host}" in
 	;;
   x86_64-*-monolith64*)
   sys_dir=monolith64
-  newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES"
+  newlib_cflags="${newlib_cflags} -DMISSING_SYSCALL_NAMES -DSIGNAL_PROVIDED"
   ;;
   *-*-netware*)
 	signal_dir=
