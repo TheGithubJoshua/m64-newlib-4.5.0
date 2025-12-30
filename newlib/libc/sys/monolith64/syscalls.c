@@ -33,7 +33,7 @@ int close(int file) {
 	return ret;
 }
 
-char **environ; /* pointer to array of char * strings that define the current environment variables */
+//char **environ; /* pointer to array of char * strings that define the current environment variables */
 int execve(char *name, char **argv, char **env) {
 	long ret;
 
@@ -52,7 +52,19 @@ int execve(char *name, char **argv, char **env) {
 	return (int)ret;
 };
 
-int fork() { errno = ENOSYS; return -1; };
+int fork() {
+	long ret;
+	asm volatile(
+	    "int $0x69"
+	    : "=a"(ret)
+	    : "a"(25)
+	    : "memory"
+	);
+	if (ret < 0) { errno = -ret; return -1; }
+	return ret;
+
+}
+
 int fstat(int fd, struct stat *st) {
     long ret = 19; // syscall number for fstat in rax
 
@@ -71,6 +83,7 @@ int fstat(int fd, struct stat *st) {
 
     return 0;
 }
+
 int getpid() {
 	long ret;
 	asm volatile(
@@ -101,6 +114,7 @@ int kill(int pid, int sig) {
 
 	return 0;
 }
+
 void (*signal(int sig, void(*func)(int))) (int) {
 	long ret = 22; // syscall number
 

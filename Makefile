@@ -343,7 +343,7 @@ BOOT_LDFLAGS=
 BOOT_ADAFLAGS= -gnatpg
 
 AWK = gawk
-SED = /usr/bin/sed
+SED = /usr/sbin/sed
 BISON = bison
 YACC = bison -y
 FLEX = flex
