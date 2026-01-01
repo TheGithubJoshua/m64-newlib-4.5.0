@@ -232,4 +232,16 @@ caddr_t sbrk(intptr_t incr) {
 
     return (caddr_t)ret;
 }
-int gettimeofday(struct timeval *p, void *z) { errno = ENOSYS; return -1; }
+int gettimeofday(struct timeval *p, void *z) {
+	long ret = 26; // syscall number for fstat in rax
+
+	asm volatile(
+	    "int $0x69"
+	    : "+a"(ret)       // syscall no
+	    : "D"(p),        // p
+	      "S"(z)         // z
+	    : "memory"
+	);
+
+	return 0;
+}
